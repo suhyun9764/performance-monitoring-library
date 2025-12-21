@@ -1,16 +1,15 @@
 package com.suhyun.performancestarter.collector;
 
-import com.suhyun.performancestarter.model.PerformanceMetric;
+import com.suhyun.performancestarter.dto.PerformanceMetric;
 import com.suhyun.performancestarter.model.RequestPerMetrics;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 @Component
-public class MetricsCollector {
+public class MetricsRepository {
 
     private final Map<String, RequestPerMetrics> metricsByRequest = new ConcurrentHashMap<>();
     private final Map<String, List<PerformanceMetric>> metricsByMethod = new ConcurrentHashMap<>();
@@ -121,9 +120,5 @@ public class MetricsCollector {
     public void clear() {
         metricsByRequest.clear();
         metricsByMethod.clear();
-    }
-
-    public void calculateSelfExecutionTimes(String traceId) {
-        metricsByRequest.get(traceId).calculateSelfExecutionTimes();
     }
 }

@@ -1,8 +1,10 @@
-package com.suhyun.performancestarter.model;
+package com.suhyun.performancestarter.dto;
 
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Builder
@@ -16,11 +18,9 @@ public class PerformanceMetric {
     private String methodName;
     private String url;
     private long executionTime;
-    @Setter
-    private Long selfExecutionTime;
     private LocalDateTime timestamp;
     private final int totalQueryCount;
     private final boolean hasNPlusOne;
-    private final String nPlusOnePattern;
-    private final Integer nPlusOneCount;
+    @Builder.Default
+    private final List<NPlusOneIssue> nPlusOneIssues = new ArrayList<>();
 }

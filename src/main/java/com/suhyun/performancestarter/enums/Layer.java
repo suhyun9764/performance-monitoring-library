@@ -1,4 +1,4 @@
-package com.suhyun.performancestarter.aop.enums;
+package com.suhyun.performancestarter.enums;
 
 public enum Layer {
     CONTROLLER,

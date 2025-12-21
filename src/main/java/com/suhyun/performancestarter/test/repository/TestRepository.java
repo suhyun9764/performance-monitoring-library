@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-@PerformanceMonitoring
+@PerformanceMonitoring(queryMonitoring = true)
 public interface TestRepository extends JpaRepository<Post,Long> {
     @Override
     List<Post> findAll();  // ← 직접 선언!
+
+    List<Post> findByTitle(String title);
 }

@@ -16,12 +16,6 @@ public class QueryStatistics {
     private static final int DEFAULT_MIN_REPEAT_COUNT = 3;
     private static final double DEFAULT_MIN_REPEAT_RATIO = 0.3;
 
-    public void reset() {
-        totalQueryCount = 0;
-        queries.clear();
-        queryPatternCount.clear();
-    }
-
     public void addQuery(String sql){
         totalQueryCount++;
         queries.add(sql);
@@ -58,15 +52,9 @@ public class QueryStatistics {
         return false;
     }
 
-    public Map.Entry<String,Integer> getMostFrequentPattern(){
-        return queryPatternCount.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .orElse(null);
-    }
-
     public List<Map.Entry<String, Integer>> getSuspiciousPatterns() {
         return queryPatternCount.entrySet().stream()
-                .filter(e -> e.getValue() >= DEFAULT_MIN_REPEAT_COUNT &&
+                .filter(e -> e.getValue() >= DEFAULT_MIN_REPEAT_COUNT ||
                         e.getValue() >= totalQueryCount * DEFAULT_MIN_REPEAT_RATIO)
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .toList();

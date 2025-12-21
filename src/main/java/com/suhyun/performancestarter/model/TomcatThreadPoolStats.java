@@ -27,16 +27,10 @@ public class TomcatThreadPoolStats {
         return maxThreads > 0 ? (currentThreads * 100.0 / maxThreads) : 0;
     }
 
-    /**
-     * 스레드 활성률 (%)
-     */
     public double getThreadActiveRate() {
         return currentThreads > 0 ? (activeThreads * 100.0 / currentThreads) : 0;
     }
 
-    /**
-     * 연결 사용률 (%)
-     */
     public double getConnectionUtilization() {
         return maxConnections > 0 ? (connectionCount * 100.0 / maxConnections) : 0;
     }

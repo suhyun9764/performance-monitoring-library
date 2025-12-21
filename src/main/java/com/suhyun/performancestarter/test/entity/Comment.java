@@ -9,6 +9,7 @@
     import org.hibernate.annotations.UpdateTimestamp;
 
     import java.time.LocalDateTime;
+    import java.util.List;
 
     @Entity
     @Builder
@@ -31,6 +32,10 @@
         @ManyToOne
         @JoinColumn(name = "post_id")
         private Post post;
+
+        @OneToMany(mappedBy = "comment", fetch = FetchType.EAGER)
+        private List<SecondComment> secondComments;
+
 
         public static Comment create(String content, String author,String password) {
             return Comment.builder()

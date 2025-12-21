@@ -1,7 +1,8 @@
 package com.suhyun.performancestarter.aop.utils;
 
-import com.suhyun.performancestarter.aop.enums.Layer;
+import com.suhyun.performancestarter.annotation.PerformanceMonitoring;
 import com.suhyun.performancestarter.aop.dto.MethodInfo;
+import com.suhyun.performancestarter.enums.Layer;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -18,20 +19,36 @@ public class MethodInfoExtractor {
     public MethodInfo extract(ProceedingJoinPoint joinPoint){
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
-        String methodName = signature.getMethod().getName();
         Class<?> targetClass = signature.getDeclaringType();
-        String className = targetClass.getSimpleName();
+
         Layer layer = layerDetector.detect(targetClass);
         String url = null;
         if(layer.equals(Layer.CONTROLLER))
             url = urlExtractor.extractUrl(targetClass, method);
 
         return MethodInfo.builder()
-                .methodName(methodName)
-                .className(className)
+                .methodName(method.getName())
+                .className(targetClass.getSimpleName())
                 .layer(layer.name())
+                .queryMonitoring(extractQueryMonitoring(method,targetClass))
                 .url(url)
                 .build();
 
+    }
+
+    private boolean extractQueryMonitoring(Method method, Class<?> targetClass) {
+        PerformanceMonitoring methodAnnotation =
+                method.getAnnotation(PerformanceMonitoring.class);
+        if (methodAnnotation != null) {
+            return methodAnnotation.queryMonitoring();
+        }
+
+        PerformanceMonitoring classAnnotation =
+                targetClass.getAnnotation(PerformanceMonitoring.class);
+        if (classAnnotation != null) {
+            return classAnnotation.queryMonitoring();
+        }
+
+        return false;
     }
 }

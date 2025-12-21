@@ -38,7 +38,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post",
             cascade = CascadeType.ALL,
-    fetch = FetchType.EAGER
+    fetch = FetchType.LAZY
     )
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();

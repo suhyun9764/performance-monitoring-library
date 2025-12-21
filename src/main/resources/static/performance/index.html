@@ -6,7 +6,7 @@
   <title>성능 모니터</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       margin: 20px;
       background: #f5f5f5;
     }
@@ -18,13 +18,21 @@
       padding: 10px 20px;
       margin-right: 10px;
       cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: white;
     }
+
+    button:hover { background: #555; }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
       margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: hidden;
     }
 
     th, td {
@@ -40,32 +48,143 @@
 
     .request-item {
       background: white;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
       padding: 15px;
       border: 1px solid #ddd;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .request-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .request-item.n-plus-one-possible {
+      border-left: 4px solid #ff9800;
     }
 
     .request-header {
       cursor: pointer;
       font-weight: bold;
       margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .request-details {
       display: none;
-      margin-top: 10px;
-      padding: 10px;
+      margin-top: 15px;
+    }
+
+    /* 메서드 호출 트리 영역 */
+    .method-tree {
       background: #f9f9f9;
-      border-left: 3px solid #333;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
     }
 
     .metric-row {
-      padding: 5px 0;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
-    .fast { color: green; }
-    .normal { color: orange; }
-    .slow { color: red; }
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    /* N+1 경고 영역 */
+    .n-plus-one-section {
+      margin-top: 15px;
+      padding: 15px;
+      background: #fff3e0;
+      border: 2px solid #ff9800;
+      border-radius: 6px;
+    }
+
+    .n-plus-one-section h4 {
+      margin: 0 0 15px 0;
+      color: #e65100;
+      font-size: 1.1em;
+    }
+
+    .n-plus-one-item {
+      background: white;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border-left: 3px solid #ff9800;
+    }
+
+    .n-plus-one-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .n-plus-one-location {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .n-plus-one-details {
+      font-size: 0.95em;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .n-plus-one-details > div {
+      margin-bottom: 5px;
+    }
+
+    .n-plus-one-solution {
+      margin-top: 10px;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 4px;
+      border-left: 3px solid #4caf50;
+    }
+
+    /* 쿼리 정보 박스 */
+    .query-info-box {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 4px 10px;
+      background: #e3f2fd;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #1976d2;
+    }
+
+    .n-plus-one-badge {
+      padding: 4px 10px;
+      background: #ff9800;
+      color: white;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-weight: bold;
+    }
+
+    .fast { color: #4caf50; font-weight: bold; }
+    .normal { color: #ff9800; font-weight: bold; }
+    .slow { color: #f44336; font-weight: bold; }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .badge-service { background: #4caf50; color: white; }
+    .badge-repository { background: #2196f3; color: white; }
+    .badge-controller { background: #ff9800; color: white; }
+    .badge-unknown { background: #9e9e9e; color: white; }
   </style>
 </head>
 <body>
@@ -84,12 +203,14 @@
     <th>평균 응답시간</th>
     <th>가장 느린</th>
     <th>가장 빠른</th>
+    <th>N+1 감지</th>
   </tr>
   <tr>
     <td id="total-requests">0</td>
     <td id="avg-time">0ms</td>
     <td id="slowest-time">0ms</td>
     <td id="fastest-time">0ms</td>
+    <td id="n-plus-one-count">0건</td>
   </tr>
 </table>
 
@@ -131,18 +252,15 @@
 </div>
 
 <script>
-  // 페이지 로드 시 자동 새로고침
   window.addEventListener('DOMContentLoaded', () => {
     refreshData();
   });
 
   async function refreshData() {
     try {
-      // 메트릭 데이터
       const metricsResponse = await fetch('/performance/api/metrics');
       const requests = await metricsResponse.json();
 
-      // Tomcat 스레드 풀 상태
       const poolResponse = await fetch('/performance/api/thread-pool');
       const threadPool = await poolResponse.json();
 
@@ -176,6 +294,7 @@
       document.getElementById('avg-time').textContent = '0ms';
       document.getElementById('slowest-time').textContent = '0ms';
       document.getElementById('fastest-time').textContent = '0ms';
+      document.getElementById('n-plus-one-count').textContent = '0건';
       return;
     }
 
@@ -184,9 +303,15 @@
     const slowestTime = Math.max(...times);
     const fastestTime = Math.min(...times);
 
+    const nPlusOneCount = requests.filter(r =>
+            r.metrics.some(m => m.hasNPlusOne === true)
+    ).length;
+
     document.getElementById('avg-time').textContent = avgTime + 'ms';
     document.getElementById('slowest-time').textContent = slowestTime + 'ms';
     document.getElementById('fastest-time').textContent = fastestTime + 'ms';
+    document.getElementById('n-plus-one-count').textContent = nPlusOneCount + '건';
+    document.getElementById('n-plus-one-count').style.color = nPlusOneCount > 0 ? '#ff9800' : 'inherit';
   }
 
   function updateThreadPool(stats) {
@@ -209,7 +334,6 @@
       return;
     }
 
-    // 최신순 정렬
     requests.sort((a, b) => {
       const timeA = new Date(a.metrics[0]?.timestamp || 0);
       const timeB = new Date(b.metrics[0]?.timestamp || 0);
@@ -224,38 +348,106 @@
     const totalTime = request.totalExecutionTime || 0;
     const timeClass = getTimeClass(totalTime);
 
+    const hasNPlusOne = request.metrics.some(m => m.hasNPlusOne === true);
+    const nPlusOneClass = hasNPlusOne ? 'n-plus-one-possible' : '';
+
     return `
-                <div class="request-item">
-                    <div class="request-header" onclick="toggleDetails('${request.traceId}')">
-                        ▶ [${url}] - <span class="${timeClass}">${totalTime}ms</span>
-                    </div>
-                    <div class="request-details" id="details-${request.traceId}">
-                        ${createMetricsTree(request.metrics)}
-                    </div>
-                </div>
-            `;
+      <div class="request-item ${nPlusOneClass}">
+        <div class="request-header" onclick="toggleDetails('${request.traceId}')">
+          <span>▶ [${url}]</span>
+          <span class="${timeClass}">${totalTime}ms</span>
+          ${hasNPlusOne ? '<span class="n-plus-one-badge">⚠️ N+1 감지</span>' : ''}
+        </div>
+        <div class="request-details" id="details-${request.traceId}">
+          ${createMetricsView(request.metrics)}
+        </div>
+      </div>
+    `;
   }
 
-  function createMetricsTree(metrics) {
+  function createMetricsView(metrics) {
     if (!metrics || metrics.length === 0) {
       return '<p>메트릭이 없습니다</p>';
     }
 
-    // depth로 정렬
     const sorted = [...metrics].sort((a, b) => a.depth - b.depth);
 
-    return sorted.map(metric => {
+    const methodTree = createMethodTree(sorted);
+    const nPlusOneSection = createNPlusOneSection(sorted);
+
+    return `
+      <div class="method-tree">
+        <h4 style="margin: 0 0 15px 0; color: #666;">📊 메서드 호출 트리</h4>
+        ${methodTree}
+      </div>
+      ${nPlusOneSection}
+    `;
+  }
+
+  function createMethodTree(metrics) {
+    return metrics.map(metric => {
       const indent = '&nbsp;&nbsp;'.repeat(metric.depth * 2);
-      const selfTime = metric.selfExecutionTime || 0;
-      const timeClass = getTimeClass(selfTime);
+      const time = metric.executionTime || 0;
+      const timeClass = getTimeClass(time);
+
+      const queryBadge = (metric.totalQueryCount > 0)
+              ? `<span class="query-info-box">📊 ${metric.totalQueryCount}개 쿼리</span>`
+              : '';
 
       return `
-                    <div class="metric-row">
-                        ${indent}[${metric.layer}] ${metric.className}.${metric.methodName}() -
-                        <span class="${timeClass}">${selfTime}ms</span>
-                    </div>
-                `;
+        <div class="metric-row">
+          ${indent}
+          <span class="badge badge-${(metric.layer || 'unknown').toLowerCase()}">${metric.layer || 'UNKNOWN'}</span>
+          <span>${metric.className}.${metric.methodName}()</span>
+          <span class="${timeClass}">${time}ms</span>
+          ${queryBadge}
+        </div>
+      `;
     }).join('');
+  }
+
+  function createNPlusOneSection(metrics) {
+    const nPlusOneMetrics = metrics.filter(m => m.hasNPlusOne === true);
+
+    if (nPlusOneMetrics.length === 0) {
+      return '';
+    }
+
+    const items = nPlusOneMetrics.map(metric => {
+      const issues = metric.nplusOneIssues || [];
+
+      if (issues.length === 0) {
+        return '';
+      }
+
+      const issuesList = issues.map((issue, idx) => `
+        <div class="n-plus-one-item">
+          <div class="n-plus-one-location">
+            📍 ${metric.className}.${metric.methodName}() - N+1 패턴 #${idx + 1}
+          </div>
+          <div class="n-plus-one-details">
+            <div><strong>패턴:</strong></div>
+            <div><code style="font-size: 0.85em; word-break: break-all; display: block; background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 5px 0;">${issue.pattern}</code></div>
+            <div><strong>반복 횟수:</strong> <span style="color: #ff9800; font-weight: bold;">${issue.count}회</span></div>
+            <div><strong>전체 쿼리:</strong> ${metric.totalQueryCount || 0}개 중 ${((issue.count / metric.totalQueryCount) * 100).toFixed(1)}%</div>
+          </div>
+          <div class="n-plus-one-solution">
+            💡 <strong>권장 해결방법:</strong> ${issue.suggestion || '@EntityGraph 또는 Fetch Join 사용'}
+          </div>
+        </div>
+      `).join('');
+
+      return issuesList;
+    }).join('');
+
+    const totalIssues = nPlusOneMetrics.reduce((sum, m) => sum + (m.nplusOneIssues?.length || 0), 0);
+
+    return `
+    <div class="n-plus-one-section">
+      <h4>⚠️ N+1 쿼리 감지 (${totalIssues}개 패턴)</h4>
+      ${items}
+    </div>
+  `;
   }
 
   function toggleDetails(traceId) {
@@ -275,372 +467,3 @@
 </script>
 </body>
 </html>
-
-<!--<!DOCTYPE html>-->
-<!--<html lang="ko">-->
-<!--<head>-->
-<!--  <meta charset="UTF-8">-->
-<!--  <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
-<!--  <title>성능 모니터</title>-->
-<!--  <style>-->
-<!--    body {-->
-<!--      font-family: Arial, sans-serif;-->
-<!--      margin: 20px;-->
-<!--      background: #f5f5f5;-->
-<!--    }-->
-
-<!--    h1 { margin-bottom: 20px; }-->
-<!--    h2 { margin-top: 30px; margin-bottom: 15px; }-->
-
-<!--    button {-->
-<!--      padding: 10px 20px;-->
-<!--      margin-right: 10px;-->
-<!--      cursor: pointer;-->
-<!--    }-->
-
-<!--    table {-->
-<!--      width: 100%;-->
-<!--      border-collapse: collapse;-->
-<!--      background: white;-->
-<!--      margin-bottom: 20px;-->
-<!--    }-->
-
-<!--    th, td {-->
-<!--      border: 1px solid #ddd;-->
-<!--      padding: 12px;-->
-<!--      text-align: left;-->
-<!--    }-->
-
-<!--    th {-->
-<!--      background: #333;-->
-<!--      color: white;-->
-<!--    }-->
-
-<!--    .request-item {-->
-<!--      background: white;-->
-<!--      margin-bottom: 10px;-->
-<!--      padding: 15px;-->
-<!--      border: 1px solid #ddd;-->
-<!--    }-->
-
-<!--    .request-item.n-plus-one {-->
-<!--      border-left: 4px solid #ff4444;-->
-<!--      background: #fff8f8;-->
-<!--    }-->
-
-<!--    .request-header {-->
-<!--      cursor: pointer;-->
-<!--      font-weight: bold;-->
-<!--      margin-bottom: 10px;-->
-<!--      display: flex;-->
-<!--      align-items: center;-->
-<!--      gap: 10px;-->
-<!--    }-->
-
-<!--    .request-details {-->
-<!--      display: none;-->
-<!--      margin-top: 10px;-->
-<!--      padding: 10px;-->
-<!--      background: #f9f9f9;-->
-<!--      border-left: 3px solid #333;-->
-<!--    }-->
-
-<!--    .metric-row {-->
-<!--      padding: 5px 0;-->
-<!--      display: flex;-->
-<!--      align-items: center;-->
-<!--      gap: 10px;-->
-<!--    }-->
-
-<!--    .query-info {-->
-<!--      margin-left: 10px;-->
-<!--      padding: 3px 8px;-->
-<!--      background: #e3f2fd;-->
-<!--      border-radius: 3px;-->
-<!--      font-size: 0.9em;-->
-<!--      color: #1976d2;-->
-<!--    }-->
-
-<!--    .n-plus-one-badge {-->
-<!--      padding: 3px 8px;-->
-<!--      background: #ff4444;-->
-<!--      color: white;-->
-<!--      border-radius: 3px;-->
-<!--      font-size: 0.85em;-->
-<!--      font-weight: bold;-->
-<!--    }-->
-
-<!--    .n-plus-one-alert {-->
-<!--      margin-top: 10px;-->
-<!--      padding: 12px;-->
-<!--      background: #fff3cd;-->
-<!--      border-left: 4px solid #ff9800;-->
-<!--      border-radius: 4px;-->
-<!--    }-->
-
-<!--    .n-plus-one-alert strong {-->
-<!--      color: #d32f2f;-->
-<!--    }-->
-
-<!--    .fast { color: green; }-->
-<!--    .normal { color: orange; }-->
-<!--    .slow { color: red; }-->
-
-<!--    .badge {-->
-<!--      padding: 2px 6px;-->
-<!--      border-radius: 3px;-->
-<!--      font-size: 0.8em;-->
-<!--      font-weight: bold;-->
-<!--    }-->
-
-<!--    .badge-service { background: #4caf50; color: white; }-->
-<!--    .badge-repository { background: #2196f3; color: white; }-->
-<!--    .badge-controller { background: #ff9800; color: white; }-->
-<!--  </style>-->
-<!--</head>-->
-<!--<body>-->
-<!--<h1>⚡ 성능 모니터</h1>-->
-
-<!--<button onclick="refreshData()">🔄 새로고침</button>-->
-<!--<button onclick="clearMetrics()">🗑️ 전체 삭제</button>-->
-
-<!--<hr>-->
-
-<!--&lt;!&ndash; 성능 통계 &ndash;&gt;-->
-<!--<h2>📊 성능 통계</h2>-->
-<!--<table>-->
-<!--  <tr>-->
-<!--    <th>총 요청 수</th>-->
-<!--    <th>평균 응답시간</th>-->
-<!--    <th>가장 느린</th>-->
-<!--    <th>가장 빠른</th>-->
-<!--    <th>N+1 발생</th>-->
-<!--  </tr>-->
-<!--  <tr>-->
-<!--    <td id="total-requests">0</td>-->
-<!--    <td id="avg-time">0ms</td>-->
-<!--    <td id="slowest-time">0ms</td>-->
-<!--    <td id="fastest-time">0ms</td>-->
-<!--    <td id="n-plus-one-count">0건</td>-->
-<!--  </tr>-->
-<!--</table>-->
-
-<!--&lt;!&ndash; Tomcat 스레드 풀 &ndash;&gt;-->
-<!--<h2>🔧 스레드 풀 모니터링</h2>-->
-<!--<table>-->
-<!--  <tr>-->
-<!--    <th>구분</th>-->
-<!--    <th>현재 / 최대</th>-->
-<!--    <th>사용률</th>-->
-<!--  </tr>-->
-<!--  <tr>-->
-<!--    <td>🧵 스레드</td>-->
-<!--    <td>-->
-<!--      <span id="current-threads">0</span> /-->
-<!--      <span id="max-threads">0</span>-->
-<!--      (활성: <span id="active-threads">0</span>)-->
-<!--    </td>-->
-<!--    <td id="thread-utilization">0%</td>-->
-<!--  </tr>-->
-<!--  <tr>-->
-<!--    <td>🔌 연결</td>-->
-<!--    <td>-->
-<!--      <span id="connections">0</span> /-->
-<!--      <span id="max-connections">0</span>-->
-<!--    </td>-->
-<!--    <td id="connection-utilization">0%</td>-->
-<!--  </tr>-->
-<!--  <tr>-->
-<!--    <td>⚡ 활성률</td>-->
-<!--    <td colspan="2" id="active-rate">0%</td>-->
-<!--  </tr>-->
-<!--</table>-->
-
-<!--&lt;!&ndash; 최근 요청 &ndash;&gt;-->
-<!--<h2>📋 최근 요청</h2>-->
-<!--<div id="requests-list">-->
-<!--  <p>아직 수집된 메트릭이 없습니다</p>-->
-<!--</div>-->
-
-<!--<script>-->
-<!--  // 페이지 로드 시 자동 새로고침-->
-<!--  window.addEventListener('DOMContentLoaded', () => {-->
-<!--    refreshData();-->
-<!--  });-->
-
-<!--  async function refreshData() {-->
-<!--    try {-->
-<!--      // 메트릭 데이터-->
-<!--      const metricsResponse = await fetch('/performance/api/metrics');-->
-<!--      const requests = await metricsResponse.json();-->
-
-<!--      // Tomcat 스레드 풀 상태-->
-<!--      const poolResponse = await fetch('/performance/api/thread-pool');-->
-<!--      const threadPool = await poolResponse.json();-->
-
-<!--      updateStats(requests);-->
-<!--      updateThreadPool(threadPool);-->
-<!--      updateRequestsList(requests);-->
-
-<!--    } catch (error) {-->
-<!--      console.error('Failed to load data:', error);-->
-<!--    }-->
-<!--  }-->
-
-<!--  async function clearMetrics() {-->
-<!--    if (!confirm('모든 메트릭을 삭제하시겠습니까?')) {-->
-<!--      return;-->
-<!--    }-->
-
-<!--    try {-->
-<!--      await fetch('/performance/api/clear');-->
-<!--      refreshData();-->
-<!--    } catch (error) {-->
-<!--      console.error('Failed to clear metrics:', error);-->
-<!--    }-->
-<!--  }-->
-
-<!--  function updateStats(requests) {-->
-<!--    const totalRequests = requests.length;-->
-<!--    document.getElementById('total-requests').textContent = totalRequests;-->
-
-<!--    if (totalRequests === 0) {-->
-<!--      document.getElementById('avg-time').textContent = '0ms';-->
-<!--      document.getElementById('slowest-time').textContent = '0ms';-->
-<!--      document.getElementById('fastest-time').textContent = '0ms';-->
-<!--      document.getElementById('n-plus-one-count').textContent = '0건';-->
-<!--      return;-->
-<!--    }-->
-
-<!--    const times = requests.map(r => r.totalExecutionTime);-->
-<!--    const avgTime = Math.round(times.reduce((a, b) => a + b, 0) / times.length);-->
-<!--    const slowestTime = Math.max(...times);-->
-<!--    const fastestTime = Math.min(...times);-->
-
-<!--    // N+1 발생 건수 계산-->
-<!--    const nPlusOneCount = requests.filter(r =>-->
-<!--            r.metrics.some(m => m.hasNPlusOne)-->
-<!--    ).length;-->
-
-<!--    document.getElementById('avg-time').textContent = avgTime + 'ms';-->
-<!--    document.getElementById('slowest-time').textContent = slowestTime + 'ms';-->
-<!--    document.getElementById('fastest-time').textContent = fastestTime + 'ms';-->
-<!--    document.getElementById('n-plus-one-count').textContent = nPlusOneCount + '건';-->
-<!--    document.getElementById('n-plus-one-count').style.color = nPlusOneCount > 0 ? '#ff4444' : 'inherit';-->
-<!--  }-->
-
-<!--  function updateThreadPool(stats) {-->
-<!--    document.getElementById('current-threads').textContent = stats.currentThreads;-->
-<!--    document.getElementById('max-threads').textContent = stats.maxThreads;-->
-<!--    document.getElementById('active-threads').textContent = stats.activeThreads;-->
-<!--    document.getElementById('connections').textContent = stats.connectionCount.toLocaleString();-->
-<!--    document.getElementById('max-connections').textContent = stats.maxConnections.toLocaleString();-->
-
-<!--    document.getElementById('thread-utilization').textContent = stats.threadUtilization.toFixed(1) + '%';-->
-<!--    document.getElementById('connection-utilization').textContent = stats.connectionUtilization.toFixed(1) + '%';-->
-<!--    document.getElementById('active-rate').textContent = stats.threadActiveRate.toFixed(1) + '%';-->
-<!--  }-->
-
-<!--  function updateRequestsList(requests) {-->
-<!--    const container = document.getElementById('requests-list');-->
-
-<!--    if (requests.length === 0) {-->
-<!--      container.innerHTML = '<p>아직 수집된 메트릭이 없습니다</p>';-->
-<!--      return;-->
-<!--    }-->
-
-<!--    // 최신순 정렬-->
-<!--    requests.sort((a, b) => {-->
-<!--      const timeA = new Date(a.metrics[0]?.timestamp || 0);-->
-<!--      const timeB = new Date(b.metrics[0]?.timestamp || 0);-->
-<!--      return timeB - timeA;-->
-<!--    });-->
-
-<!--    container.innerHTML = requests.map(request => createRequestItem(request)).join('');-->
-<!--  }-->
-
-<!--  function createRequestItem(request) {-->
-<!--    const url = request.requestUrl || 'UNKNOWN';-->
-<!--    const totalTime = request.totalExecutionTime || 0;-->
-<!--    const timeClass = getTimeClass(totalTime);-->
-
-<!--    // N+1 발생 여부 확인-->
-<!--    const hasNPlusOne = request.metrics.some(m => m.hasNPlusOne);-->
-<!--    const nPlusOneClass = hasNPlusOne ? 'n-plus-one' : '';-->
-
-<!--    return `-->
-<!--      <div class="request-item ${nPlusOneClass}">-->
-<!--        <div class="request-header" onclick="toggleDetails('${request.traceId}')">-->
-<!--          <span>▶ [${url}]</span>-->
-<!--          <span class="${timeClass}">${totalTime}ms</span>-->
-<!--          ${hasNPlusOne ? '<span class="n-plus-one-badge">⚠️ N+1</span>' : ''}-->
-<!--        </div>-->
-<!--        <div class="request-details" id="details-${request.traceId}">-->
-<!--          ${createMetricsTree(request.metrics)}-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    `;-->
-<!--  }-->
-
-<!--  function createMetricsTree(metrics) {-->
-<!--    if (!metrics || metrics.length === 0) {-->
-<!--      return '<p>메트릭이 없습니다</p>';-->
-<!--    }-->
-
-<!--    // depth로 정렬-->
-<!--    const sorted = [...metrics].sort((a, b) => a.depth - b.depth);-->
-
-<!--    return sorted.map(metric => {-->
-<!--      const indent = '&nbsp;&nbsp;'.repeat(metric.depth * 2);-->
-<!--      const time = metric.executionTime || 0;-->
-<!--      const timeClass = getTimeClass(time);-->
-
-<!--      // 쿼리 정보-->
-<!--      const queryInfo = metric.totalQueryCount > 0-->
-<!--              ? `<span class="query-info">📊 ${metric.totalQueryCount}개 쿼리</span>`-->
-<!--              : '';-->
-
-<!--      // N+1 경고-->
-<!--      const nPlusOneAlert = metric.hasNPlusOne-->
-<!--              ? `-->
-<!--          <div class="n-plus-one-alert">-->
-<!--            <strong>⚠️ N+1 쿼리 감지!</strong><br>-->
-<!--            패턴: <code>${metric.nPlusOnePattern}</code><br>-->
-<!--            반복 횟수: <strong>${metric.nPlusOneCount}회</strong><br>-->
-<!--            💡 해결: @EntityGraph 또는 Fetch Join 사용 권장-->
-<!--          </div>-->
-<!--        `-->
-<!--              : '';-->
-
-<!--      return `-->
-<!--        <div class="metric-row">-->
-<!--          ${indent}-->
-<!--          <span class="badge badge-${metric.layer.toLowerCase()}">${metric.layer}</span>-->
-<!--          <span>${metric.className}.${metric.methodName}()</span>-->
-<!--          <span class="${timeClass}">${time}ms</span>-->
-<!--          ${queryInfo}-->
-<!--        </div>-->
-<!--        ${nPlusOneAlert}-->
-<!--      `;-->
-<!--    }).join('');-->
-<!--  }-->
-
-<!--  function toggleDetails(traceId) {-->
-<!--    const details = document.getElementById('details-' + traceId);-->
-<!--    if (details.style.display === 'none' || details.style.display === '') {-->
-<!--      details.style.display = 'block';-->
-<!--    } else {-->
-<!--      details.style.display = 'none';-->
-<!--    }-->
-<!--  }-->
-
-<!--  function getTimeClass(time) {-->
-<!--    if (time < 50) return 'fast';-->
-<!--    if (time < 200) return 'normal';-->
-<!--    return 'slow';-->
-<!--  }-->
-<!--</script>-->
-<!--</body>-->
-<!--</html>-->
-
-

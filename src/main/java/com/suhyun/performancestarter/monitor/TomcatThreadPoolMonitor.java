@@ -1,16 +1,11 @@
-package com.suhyun.performancestarter.service;
+package com.suhyun.performancestarter.monitor;
 
 import com.suhyun.performancestarter.model.TomcatThreadPoolStats;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 import org.springframework.stereotype.Component;
 
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
-import java.util.Set;
 
 /**
  * Tomcat 스레드 풀 모니터링
@@ -30,7 +25,6 @@ public class TomcatThreadPoolMonitor {
         int waitingThreads = 0;
         int timedWaitingThreads = 0;
 
-        System.out.println("\n[Debug] ===== Thread Analysis (Total: " + threadCount + ") =====");
 
         for (long threadId : threadIds) {
             ThreadInfo info = threadMXBean.getThreadInfo(threadId);
@@ -42,7 +36,6 @@ public class TomcatThreadPoolMonitor {
             // HTTP 처리 스레드 카운트
             if (isHttpThread(name)) {
                 httpThreads++;
-                System.out.println("[HTTP] " + name + " - " + state);
 
                 // 상태별 카운트
                 if (state == Thread.State.RUNNABLE) {
@@ -55,12 +48,9 @@ public class TomcatThreadPoolMonitor {
             }
         }
 
-        // HTTP 스레드 못 찾으면 전체 스레드 사용
         if (httpThreads == 0) {
-            System.out.println("[Warning] No HTTP threads found, using all threads");
             httpThreads = threadCount;
 
-            // 전체 스레드 상태 분석
             for (long threadId : threadIds) {
                 ThreadInfo info = threadMXBean.getThreadInfo(threadId);
                 if (info == null) continue;
@@ -70,18 +60,11 @@ public class TomcatThreadPoolMonitor {
                 }
             }
         }
-
-        System.out.println("[Summary] Total HTTP: " + httpThreads +
-                ", Runnable: " + runnableThreads +
-                ", Waiting: " + waitingThreads +
-                ", Timed-Waiting: " + timedWaitingThreads);
-        System.out.println("========================================\n");
-
         return new TomcatThreadPoolStats(
                 runnableThreads,     // 활성 스레드
                 httpThreads,         // 현재 스레드
                 200,                 // 최대 스레드
-                runnableThreads,     // 연결 수 (활성으로 추정)
+                runnableThreads,     // 연결 수
                 8192                 // 최대 연결
         );
     }

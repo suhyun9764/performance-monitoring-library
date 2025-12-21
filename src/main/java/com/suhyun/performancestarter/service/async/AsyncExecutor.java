@@ -1,11 +1,10 @@
-package com.suhyun.performancestarter.service;
+package com.suhyun.performancestarter.service.async;
 
 import com.suhyun.performancestarter.model.AsyncThreadPoolStats;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.util.concurrent.*;
 
@@ -37,30 +36,14 @@ public class AsyncExecutor {
                 new PerformanceThreadFactory(),
                 new ThreadPoolExecutor.CallerRunsPolicy()
         );
-
-        System.out.println(String.format(
-                "[Performance Monitoring] Async executor initialized - core: %d, max: %d, queue: %d",
-                corePoolSize, maxPoolSize, queueCapacity
-        ));
     }
 
     public void executeAsync(Runnable task) {
-        // 호출한 스레드 출력
-        String callerThread = Thread.currentThread().getName();
+
 
         CompletableFuture.runAsync(() -> {
-            // 실행하는 스레드 출력
-            String executorThread = Thread.currentThread().getName();
-
-            System.out.println(String.format(
-                    "[Performance Monitoring] Task executed - caller: %s, executor: %s",
-                    callerThread, executorThread
-            ));
-
             task.run();
-
         }, executor).exceptionally(throwable -> {
-            System.err.println("[Performance Monitoring] Async task failed: " + throwable.getMessage());
             return null;
         });
     }
@@ -80,27 +63,15 @@ public class AsyncExecutor {
 
     @PreDestroy
     public void shutdown() {
-        System.out.println("[Performance Monitoring] Shutting down async executor...");
-
-        System.out.println(String.format(
-                "[Performance Monitoring] Final stats - completed: %d, queue: %d",
-                executor.getCompletedTaskCount(),
-                executor.getQueue().size()
-        ));
-
         executor.shutdown();
-
         try {
             if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
-                System.err.println("[Performance Monitoring] Forcing shutdown...");
                 executor.shutdownNow();
             }
         } catch (InterruptedException e) {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
-
-        System.out.println("[Performance Monitoring] Async executor shutdown complete");
     }
 
     private static class PerformanceThreadFactory implements ThreadFactory {

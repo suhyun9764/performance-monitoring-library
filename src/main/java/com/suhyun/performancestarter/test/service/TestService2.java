@@ -15,11 +15,10 @@ import java.util.List;
 @Service
 @PerformanceMonitoring(queryMonitoring = true)
 @RequiredArgsConstructor
-public class TestServiceImpl implements TestService {
+public class TestService2  {
     private final TestRepository testRepository;
     private final TestRepository2 testRepository2;
     private final TestJdbcRepositoryImpl testJdbcRepository;
-    @Override
 
     @Transactional
     public void test() throws InterruptedException {

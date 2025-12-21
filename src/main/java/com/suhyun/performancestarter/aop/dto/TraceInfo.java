@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class TraceInfo {
     private String traceId;
     private int depth;
+    private String executionId;
     private boolean isRootCall;
 }

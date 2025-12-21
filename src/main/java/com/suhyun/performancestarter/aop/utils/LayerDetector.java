@@ -1,6 +1,6 @@
 package com.suhyun.performancestarter.aop.utils;
 
-import com.suhyun.performancestarter.aop.enums.Layer;
+import com.suhyun.performancestarter.enums.Layer;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
