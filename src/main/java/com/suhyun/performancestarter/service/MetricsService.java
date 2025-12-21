@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Map;
 
 public interface MetricsService {
-    void saveAsync(PerformanceMetric metric);
-
     List<RequestPerMetrics> getAll();
 
     Map<String, String> clear();
 
     PerformanceMetric createMetric(TraceInfo traceInfo, MethodInfo methodInfo, long executionTime, QueryInfo queryInfo);
+
+    void save(TraceInfo traceInfo, MethodInfo methodInfo, long executionTime, QueryInfo queryInfo);
 }

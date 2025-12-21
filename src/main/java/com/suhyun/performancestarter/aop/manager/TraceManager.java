@@ -12,25 +12,10 @@ import java.util.UUID;
 public class TraceManager {
 
     public TraceInfo start(){
-        String traceId = TraceRepository.getCurrentTraceId();
-        int currentDepth = TraceRepository.getCurrentDepth();
-        boolean isRootCall = (currentDepth == 0);
-
-        String executionId = UUID.randomUUID().toString();
-        TraceRepository.increaseDepth();
-
-        return TraceInfo.builder()
-                .traceId(traceId)
-                .depth(currentDepth)
-                .executionId(executionId)
-                .isRootCall(isRootCall)
-                .build();
+        return TraceRepository.getTrace();
     }
 
-    public void end(TraceInfo traceInfo){
-        TraceRepository.decreaseDepth();
-        if(traceInfo.isRootCall()) {
-            TraceRepository.endTrace();
-        }
+    public void end(){
+       TraceRepository.endTrace();
     }
 }

@@ -3,467 +3,924 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>성능 모니터</title>
+  <title>Performance Dashboard</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      margin: 20px;
-      background: #f5f5f5;
+    /* ===== 기본 설정 ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    h1 { margin-bottom: 20px; }
-    h2 { margin-top: 30px; margin-bottom: 15px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
 
-    button {
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* ===== 헤더 ===== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e1e8ed;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ===== 버튼 ===== */
+    .btn {
       padding: 10px 20px;
-      margin-right: 10px;
-      cursor: pointer;
       border: none;
-      border-radius: 4px;
-      background: #333;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #4CAF50;
       color: white;
     }
 
-    button:hover { background: #555; }
+    .btn-primary:hover {
+      background: #45a049;
+    }
 
-    table {
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #da190b;
+    }
+
+    /* ===== 섹션 ===== */
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #1a1a1a;
+    }
+
+    .stats-section,
+    .thread-section,
+    .requests-section {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ===== 통계 카드 ===== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-card {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      border-left: 4px solid #4CAF50;
+    }
+
+    .stat-card-warning {
+      border-left-color: #ff9800;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    /* ===== 테이블 ===== */
+    .data-table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
-      margin-bottom: 20px;
-      border-radius: 8px;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e1e8ed;
+    }
+
+    .data-table th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #1a1a1a;
+      font-size: 14px;
+    }
+
+    .data-table td {
+      font-size: 14px;
+    }
+
+    /* ===== 프로그레스 바 ===== */
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 24px;
+      background: #e1e8ed;
+      border-radius: 12px;
       overflow: hidden;
     }
 
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
-      text-align: left;
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: #4CAF50;
+      border-radius: 12px;
+      transition: width 0.3s ease;
     }
 
-    th {
-      background: #333;
-      color: white;
+    .progress-text {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a1a1a;
+      z-index: 1;
     }
 
-    .request-item {
-      background: white;
-      margin-bottom: 15px;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      transition: all 0.3s;
+    /* ===== 요청 목록 ===== */
+    .requests-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .request-item:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    .request-card {
+      background: #f8f9fa;
+      border: 1px solid #e1e8ed;
+      border-radius: 6px;
+      overflow: hidden;
+      transition: all 0.2s;
     }
 
-    .request-item.n-plus-one-possible {
+    .request-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .request-card.has-n-plus-one {
       border-left: 4px solid #ff9800;
     }
 
     .request-header {
+      padding: 15px;
       cursor: pointer;
-      font-weight: bold;
-      margin-bottom: 10px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
+      user-select: none;
+    }
+
+    .request-url {
+      font-weight: 500;
+      color: #1a1a1a;
+      flex: 1;
+    }
+
+    .request-badges {
+      display: flex;
       gap: 10px;
-      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .badge-time {
+      background: #e1e8ed;
+      color: #1a1a1a;
+    }
+
+    .badge-time.fast {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-time.slow {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-warning {
+      background: #ff9800;
+      color: white;
     }
 
     .request-details {
       display: none;
-      margin-top: 15px;
+      padding: 0 15px 15px 15px;
     }
 
-    /* 메서드 호출 트리 영역 */
+    .request-details.active {
+      display: block;
+    }
+
+    /* ===== 메서드 트리 ===== */
     .method-tree {
-      background: #f9f9f9;
-      padding: 15px;
+      background: white;
+      border: 1px solid #e1e8ed;
       border-radius: 6px;
+      padding: 15px;
       margin-bottom: 15px;
     }
 
-    .metric-row {
+    .tree-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #666;
+    }
+
+    .method-item {
       padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
       display: flex;
       align-items: center;
       gap: 10px;
-      border-bottom: 1px solid #e0e0e0;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .metric-row:last-child {
+    .method-item:hover {
+      background: #f8f9fa;
+    }
+
+    .method-item:last-child {
       border-bottom: none;
     }
 
-    /* N+1 경고 영역 */
-    .n-plus-one-section {
-      margin-top: 15px;
-      padding: 15px;
+    .method-item.has-n-plus-one {
       background: #fff3e0;
-      border: 2px solid #ff9800;
-      border-radius: 6px;
     }
 
-    .n-plus-one-section h4 {
-      margin: 0 0 15px 0;
-      color: #e65100;
-      font-size: 1.1em;
+    .method-layer {
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
     }
 
-    .n-plus-one-item {
+    .layer-service {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .layer-repository {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .layer-controller {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .layer-unknown {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .method-name {
+      flex: 1;
+      color: #333;
+    }
+
+    .method-time {
+      font-weight: 500;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .method-time.fast {
+      color: #2e7d32;
+    }
+
+    .method-time.normal {
+      color: #f57c00;
+    }
+
+    .method-time.slow {
+      color: #c62828;
+    }
+
+    .method-query {
+      padding: 3px 8px;
+      background: #e3f2fd;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #1565c0;
+    }
+
+    .n-plus-one-indicator {
+      padding: 3px 8px;
+      background: #ff9800;
+      color: white;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ===== 모달 ===== */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
       background: white;
-      padding: 12px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #666;
+      line-height: 1;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+    }
+
+    .modal-close:hover {
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .pattern-detail {
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .pattern-detail:last-child {
+      margin-bottom: 0;
+    }
+
+    .pattern-header {
+      font-weight: 600;
       margin-bottom: 10px;
+      color: #1a1a1a;
+    }
+
+    .pattern-code {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      word-break: break-all;
+    }
+
+    .pattern-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .pattern-stat {
+      background: white;
+      padding: 10px;
       border-radius: 4px;
       border-left: 3px solid #ff9800;
     }
 
-    .n-plus-one-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .n-plus-one-location {
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 8px;
-    }
-
-    .n-plus-one-details {
-      font-size: 0.95em;
+    .pattern-stat-label {
+      font-size: 12px;
       color: #666;
-      line-height: 1.6;
+      margin-bottom: 4px;
     }
 
-    .n-plus-one-details > div {
-      margin-bottom: 5px;
+    .pattern-stat-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ff9800;
     }
 
-    .n-plus-one-solution {
-      margin-top: 10px;
-      padding: 10px;
-      background: #e8f5e9;
-      border-radius: 4px;
-      border-left: 3px solid #4caf50;
+    /* ===== 빈 상태 ===== */
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 14px;
     }
-
-    /* 쿼리 정보 박스 */
-    .query-info-box {
-      display: inline-block;
-      margin-left: 10px;
-      padding: 4px 10px;
-      background: #e3f2fd;
-      border-radius: 4px;
-      font-size: 0.85em;
-      color: #1976d2;
-    }
-
-    .n-plus-one-badge {
-      padding: 4px 10px;
-      background: #ff9800;
-      color: white;
-      border-radius: 4px;
-      font-size: 0.85em;
-      font-weight: bold;
-    }
-
-    .fast { color: #4caf50; font-weight: bold; }
-    .normal { color: #ff9800; font-weight: bold; }
-    .slow { color: #f44336; font-weight: bold; }
-
-    .badge {
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 0.8em;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .badge-service { background: #4caf50; color: white; }
-    .badge-repository { background: #2196f3; color: white; }
-    .badge-controller { background: #ff9800; color: white; }
-    .badge-unknown { background: #9e9e9e; color: white; }
   </style>
 </head>
 <body>
-<h1>⚡ 성능 모니터</h1>
+<div class="container">
+  <header class="header">
+    <h1>Performance Dashboard</h1>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="dashboard.refresh()">새로고침</button>
+      <button class="btn btn-danger" onclick="dashboard.clearAll()">전체 삭제</button>
+    </div>
+  </header>
 
-<button onclick="refreshData()">🔄 새로고침</button>
-<button onclick="clearMetrics()">🗑️ 전체 삭제</button>
+  <!-- 통계 섹션 -->
+  <section class="stats-section">
+    <h2 class="section-title">성능 통계</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">총 요청</div>
+        <div class="stat-value" id="total-requests">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">평균 응답시간</div>
+        <div class="stat-value" id="avg-time">0ms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">최대 응답시간</div>
+        <div class="stat-value" id="max-time">0ms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">최소 응답시간</div>
+        <div class="stat-value" id="min-time">0ms</div>
+      </div>
+      <div class="stat-card stat-card-warning">
+        <div class="stat-label">N+1 감지</div>
+        <div class="stat-value" id="n-plus-one-count">0건</div>
+      </div>
+    </div>
+  </section>
 
-<hr>
+  <!-- 스레드 풀 섹션 -->
+  <section class="thread-section">
+    <h2 class="section-title">스레드 풀</h2>
+    <table class="data-table">
+      <thead>
+      <tr>
+        <th>구분</th>
+        <th>현재 / 최대</th>
+        <th>사용률</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>스레드</td>
+        <td>
+          <span id="current-threads">0</span> /
+          <span id="max-threads">0</span>
+          (활성: <span id="active-threads">0</span>)
+        </td>
+        <td>
+          <div class="progress-bar">
+            <div class="progress-fill" id="thread-utilization-bar"></div>
+            <span class="progress-text" id="thread-utilization">0%</span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>연결</td>
+        <td>
+          <span id="connections">0</span> /
+          <span id="max-connections">0</span>
+        </td>
+        <td>
+          <div class="progress-bar">
+            <div class="progress-fill" id="connection-utilization-bar"></div>
+            <span class="progress-text" id="connection-utilization">0%</span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>활성률</td>
+        <td colspan="2">
+          <div class="progress-bar">
+            <div class="progress-fill" id="active-rate-bar"></div>
+            <span class="progress-text" id="active-rate">0%</span>
+          </div>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </section>
 
-<!-- 성능 통계 -->
-<h2>📊 성능 통계</h2>
-<table>
-  <tr>
-    <th>총 요청 수</th>
-    <th>평균 응답시간</th>
-    <th>가장 느린</th>
-    <th>가장 빠른</th>
-    <th>N+1 감지</th>
-  </tr>
-  <tr>
-    <td id="total-requests">0</td>
-    <td id="avg-time">0ms</td>
-    <td id="slowest-time">0ms</td>
-    <td id="fastest-time">0ms</td>
-    <td id="n-plus-one-count">0건</td>
-  </tr>
-</table>
+  <!-- 요청 목록 섹션 -->
+  <section class="requests-section">
+    <h2 class="section-title">최근 요청</h2>
+    <div id="requests-list" class="requests-list">
+      <div class="empty-state">아직 수집된 데이터가 없습니다</div>
+    </div>
+  </section>
+</div>
 
-<!-- Tomcat 스레드 풀 -->
-<h2>🔧 스레드 풀 모니터링</h2>
-<table>
-  <tr>
-    <th>구분</th>
-    <th>현재 / 최대</th>
-    <th>사용률</th>
-  </tr>
-  <tr>
-    <td>🧵 스레드</td>
-    <td>
-      <span id="current-threads">0</span> /
-      <span id="max-threads">0</span>
-      (활성: <span id="active-threads">0</span>)
-    </td>
-    <td id="thread-utilization">0%</td>
-  </tr>
-  <tr>
-    <td>🔌 연결</td>
-    <td>
-      <span id="connections">0</span> /
-      <span id="max-connections">0</span>
-    </td>
-    <td id="connection-utilization">0%</td>
-  </tr>
-  <tr>
-    <td>⚡ 활성률</td>
-    <td colspan="2" id="active-rate">0%</td>
-  </tr>
-</table>
-
-<!-- 최근 요청 -->
-<h2>📋 최근 요청</h2>
-<div id="requests-list">
-  <p>아직 수집된 메트릭이 없습니다</p>
+<!-- N+1 상세 모달 -->
+<div id="n-plus-one-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-title">N+1 쿼리 상세</h3>
+      <button class="modal-close" onclick="dashboard.closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
 </div>
 
 <script>
-  window.addEventListener('DOMContentLoaded', () => {
-    refreshData();
-  });
+  const dashboard = {
+    init() {
+      this.refresh();
+      this.setupEventListeners();
+    },
 
-  async function refreshData() {
-    try {
-      const metricsResponse = await fetch('/performance/api/metrics');
-      const requests = await metricsResponse.json();
+    setupEventListeners() {
+      document.getElementById('n-plus-one-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'n-plus-one-modal') {
+          this.closeModal();
+        }
+      });
 
-      const poolResponse = await fetch('/performance/api/thread-pool');
-      const threadPool = await poolResponse.json();
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.closeModal();
+        }
+      });
+    },
 
-      updateStats(requests);
-      updateThreadPool(threadPool);
-      updateRequestsList(requests);
+    async refresh() {
+      try {
+        const [metricsResponse, threadPoolResponse] = await Promise.all([
+          fetch('/performance/api/metrics'),
+          fetch('/performance/api/thread-pool')
+        ]);
 
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    }
-  }
+        const metrics = await metricsResponse.json();
+        const threadPool = await threadPoolResponse.json();
 
-  async function clearMetrics() {
-    if (!confirm('모든 메트릭을 삭제하시겠습니까?')) {
-      return;
-    }
+        this.updateStats(metrics);
+        this.updateThreadPool(threadPool);
+        this.renderRequestsList(metrics);
 
-    try {
-      await fetch('/performance/api/clear');
-      refreshData();
-    } catch (error) {
-      console.error('Failed to clear metrics:', error);
-    }
-  }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        this.showError('데이터를 불러오는데 실패했습니다');
+      }
+    },
 
-  function updateStats(requests) {
-    const totalRequests = requests.length;
-    document.getElementById('total-requests').textContent = totalRequests;
-
-    if (totalRequests === 0) {
-      document.getElementById('avg-time').textContent = '0ms';
-      document.getElementById('slowest-time').textContent = '0ms';
-      document.getElementById('fastest-time').textContent = '0ms';
-      document.getElementById('n-plus-one-count').textContent = '0건';
-      return;
-    }
-
-    const times = requests.map(r => r.totalExecutionTime);
-    const avgTime = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    const slowestTime = Math.max(...times);
-    const fastestTime = Math.min(...times);
-
-    const nPlusOneCount = requests.filter(r =>
-            r.metrics.some(m => m.hasNPlusOne === true)
-    ).length;
-
-    document.getElementById('avg-time').textContent = avgTime + 'ms';
-    document.getElementById('slowest-time').textContent = slowestTime + 'ms';
-    document.getElementById('fastest-time').textContent = fastestTime + 'ms';
-    document.getElementById('n-plus-one-count').textContent = nPlusOneCount + '건';
-    document.getElementById('n-plus-one-count').style.color = nPlusOneCount > 0 ? '#ff9800' : 'inherit';
-  }
-
-  function updateThreadPool(stats) {
-    document.getElementById('current-threads').textContent = stats.currentThreads;
-    document.getElementById('max-threads').textContent = stats.maxThreads;
-    document.getElementById('active-threads').textContent = stats.activeThreads;
-    document.getElementById('connections').textContent = stats.connectionCount.toLocaleString();
-    document.getElementById('max-connections').textContent = stats.maxConnections.toLocaleString();
-
-    document.getElementById('thread-utilization').textContent = stats.threadUtilization.toFixed(1) + '%';
-    document.getElementById('connection-utilization').textContent = stats.connectionUtilization.toFixed(1) + '%';
-    document.getElementById('active-rate').textContent = stats.threadActiveRate.toFixed(1) + '%';
-  }
-
-  function updateRequestsList(requests) {
-    const container = document.getElementById('requests-list');
-
-    if (requests.length === 0) {
-      container.innerHTML = '<p>아직 수집된 메트릭이 없습니다</p>';
-      return;
-    }
-
-    requests.sort((a, b) => {
-      const timeA = new Date(a.metrics[0]?.timestamp || 0);
-      const timeB = new Date(b.metrics[0]?.timestamp || 0);
-      return timeB - timeA;
-    });
-
-    container.innerHTML = requests.map(request => createRequestItem(request)).join('');
-  }
-
-  function createRequestItem(request) {
-    const url = request.requestUrl || 'UNKNOWN';
-    const totalTime = request.totalExecutionTime || 0;
-    const timeClass = getTimeClass(totalTime);
-
-    const hasNPlusOne = request.metrics.some(m => m.hasNPlusOne === true);
-    const nPlusOneClass = hasNPlusOne ? 'n-plus-one-possible' : '';
-
-    return `
-      <div class="request-item ${nPlusOneClass}">
-        <div class="request-header" onclick="toggleDetails('${request.traceId}')">
-          <span>▶ [${url}]</span>
-          <span class="${timeClass}">${totalTime}ms</span>
-          ${hasNPlusOne ? '<span class="n-plus-one-badge">⚠️ N+1 감지</span>' : ''}
-        </div>
-        <div class="request-details" id="details-${request.traceId}">
-          ${createMetricsView(request.metrics)}
-        </div>
-      </div>
-    `;
-  }
-
-  function createMetricsView(metrics) {
-    if (!metrics || metrics.length === 0) {
-      return '<p>메트릭이 없습니다</p>';
-    }
-
-    const sorted = [...metrics].sort((a, b) => a.depth - b.depth);
-
-    const methodTree = createMethodTree(sorted);
-    const nPlusOneSection = createNPlusOneSection(sorted);
-
-    return `
-      <div class="method-tree">
-        <h4 style="margin: 0 0 15px 0; color: #666;">📊 메서드 호출 트리</h4>
-        ${methodTree}
-      </div>
-      ${nPlusOneSection}
-    `;
-  }
-
-  function createMethodTree(metrics) {
-    return metrics.map(metric => {
-      const indent = '&nbsp;&nbsp;'.repeat(metric.depth * 2);
-      const time = metric.executionTime || 0;
-      const timeClass = getTimeClass(time);
-
-      const queryBadge = (metric.totalQueryCount > 0)
-              ? `<span class="query-info-box">📊 ${metric.totalQueryCount}개 쿼리</span>`
-              : '';
-
-      return `
-        <div class="metric-row">
-          ${indent}
-          <span class="badge badge-${(metric.layer || 'unknown').toLowerCase()}">${metric.layer || 'UNKNOWN'}</span>
-          <span>${metric.className}.${metric.methodName}()</span>
-          <span class="${timeClass}">${time}ms</span>
-          ${queryBadge}
-        </div>
-      `;
-    }).join('');
-  }
-
-  function createNPlusOneSection(metrics) {
-    const nPlusOneMetrics = metrics.filter(m => m.hasNPlusOne === true);
-
-    if (nPlusOneMetrics.length === 0) {
-      return '';
-    }
-
-    const items = nPlusOneMetrics.map(metric => {
-      const issues = metric.nplusOneIssues || [];
-
-      if (issues.length === 0) {
-        return '';
+    async clearAll() {
+      if (!confirm('모든 메트릭을 삭제하시겠습니까?')) {
+        return;
       }
 
-      const issuesList = issues.map((issue, idx) => `
-        <div class="n-plus-one-item">
-          <div class="n-plus-one-location">
-            📍 ${metric.className}.${metric.methodName}() - N+1 패턴 #${idx + 1}
-          </div>
-          <div class="n-plus-one-details">
-            <div><strong>패턴:</strong></div>
-            <div><code style="font-size: 0.85em; word-break: break-all; display: block; background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 5px 0;">${issue.pattern}</code></div>
-            <div><strong>반복 횟수:</strong> <span style="color: #ff9800; font-weight: bold;">${issue.count}회</span></div>
-            <div><strong>전체 쿼리:</strong> ${metric.totalQueryCount || 0}개 중 ${((issue.count / metric.totalQueryCount) * 100).toFixed(1)}%</div>
-          </div>
-          <div class="n-plus-one-solution">
-            💡 <strong>권장 해결방법:</strong> ${issue.suggestion || '@EntityGraph 또는 Fetch Join 사용'}
-          </div>
-        </div>
-      `).join('');
+      try {
+        await fetch('/performance/api/clear', { method: 'POST' });
+        this.refresh();
+      } catch (error) {
+        console.error('Failed to clear metrics:', error);
+        this.showError('삭제에 실패했습니다');
+      }
+    },
 
-      return issuesList;
-    }).join('');
+    updateStats(requests) {
+      const total = requests.length;
+      document.getElementById('total-requests').textContent = total;
 
-    const totalIssues = nPlusOneMetrics.reduce((sum, m) => sum + (m.nplusOneIssues?.length || 0), 0);
+      if (total === 0) {
+        document.getElementById('avg-time').textContent = '0ms';
+        document.getElementById('max-time').textContent = '0ms';
+        document.getElementById('min-time').textContent = '0ms';
+        document.getElementById('n-plus-one-count').textContent = '0건';
+        return;
+      }
 
-    return `
-    <div class="n-plus-one-section">
-      <h4>⚠️ N+1 쿼리 감지 (${totalIssues}개 패턴)</h4>
-      ${items}
+      // ✅ totalExecutionTime이 숫자인지 확인하고 필터링
+      const times = requests
+              .map(r => r.totalExecutionTime)
+              .filter(t => typeof t === 'number' && !isNaN(t));
+
+      if (times.length === 0) {
+        document.getElementById('avg-time').textContent = '0ms';
+        document.getElementById('max-time').textContent = '0ms';
+        document.getElementById('min-time').textContent = '0ms';
+      } else {
+        const avgTime = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+        const maxTime = Math.max(...times);
+        const minTime = Math.min(...times);
+
+        document.getElementById('avg-time').textContent = avgTime + 'ms';
+        document.getElementById('max-time').textContent = maxTime + 'ms';
+        document.getElementById('min-time').textContent = minTime + 'ms';
+      }
+
+      const nPlusOneCount = requests.filter(r =>
+              r.metrics && r.metrics.some(m => m.hasNPlusOne === true)
+      ).length;
+
+      document.getElementById('n-plus-one-count').textContent = nPlusOneCount + '건';
+    },
+
+    updateThreadPool(stats) {
+      document.getElementById('current-threads').textContent = stats.currentThreads || 0;
+      document.getElementById('max-threads').textContent = stats.maxThreads || 0;
+      document.getElementById('active-threads').textContent = stats.activeThreads || 0;
+      document.getElementById('connections').textContent = (stats.connectionCount || 0).toLocaleString();
+      document.getElementById('max-connections').textContent = (stats.maxConnections || 0).toLocaleString();
+
+      this.updateProgressBar('thread-utilization', stats.threadUtilization || 0);
+      this.updateProgressBar('connection-utilization', stats.connectionUtilization || 0);
+      this.updateProgressBar('active-rate', stats.threadActiveRate || 0);
+    },
+
+    updateProgressBar(id, value) {
+      const bar = document.getElementById(id + '-bar');
+      const text = document.getElementById(id);
+
+      if (bar) {
+        bar.style.width = value + '%';
+        bar.style.background = this.getProgressColor(value);
+      }
+
+      if (text) {
+        text.textContent = value.toFixed(1) + '%';
+      }
+    },
+
+    getProgressColor(value) {
+      if (value < 50) return '#4CAF50';
+      if (value < 80) return '#ff9800';
+      return '#f44336';
+    },
+
+    renderRequestsList(requests) {
+      const container = document.getElementById('requests-list');
+
+      if (requests.length === 0) {
+        container.innerHTML = '<div class="empty-state">아직 수집된 데이터가 없습니다</div>';
+        return;
+      }
+
+      requests.sort((a, b) => {
+        const timeA = new Date(a.metrics[0]?.timestamp || 0);
+        const timeB = new Date(b.metrics[0]?.timestamp || 0);
+        return timeB - timeA;
+      });
+
+      container.innerHTML = requests.map(request =>
+              this.createRequestCard(request)
+      ).join('');
+    },
+
+    createRequestCard(request) {
+      const url = request.requestUrl || 'UNKNOWN';
+      const totalTime = request.totalExecutionTime || 0;
+      const timeClass = this.getTimeClass(totalTime);
+      const hasNPlusOne = request.metrics && request.metrics.some(m => m.hasNPlusOne === true);
+
+      return `
+                <div class="request-card ${hasNPlusOne ? 'has-n-plus-one' : ''}">
+                    <div class="request-header" onclick="dashboard.toggleDetails('${request.traceId}')">
+                        <div class="request-url">${url}</div>
+                        <div class="request-badges">
+                            <span class="badge badge-time ${timeClass}">${totalTime}ms</span>
+                            ${hasNPlusOne ? '<span class="badge badge-warning">N+1</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="request-details" id="details-${request.traceId}">
+                        ${this.createMethodTree(request.metrics)}
+                    </div>
+                </div>
+            `;
+    },
+
+    createMethodTree(metrics) {
+      if (!metrics || metrics.length === 0) return '';
+
+      const roots = this.buildMetricTree(metrics);
+
+      const renderNode = (node, level = 0) => {
+        const indent = '&nbsp;'.repeat(level * 4);
+        const time = node.selfExecutionTime ?? node.executionTime ?? 0;
+        const timeClass = this.getTimeClass(time);
+        const layer = (node.layer || 'unknown').toLowerCase();
+        const hasNPlusOne = node.hasNPlusOne === true;
+
+        const queryBadge = node.totalQueryCount > 0
+                ? `<span class="method-query">${node.totalQueryCount}개 쿼리</span>`
+                : '';
+
+        const nPlusOneBadge = hasNPlusOne
+                ? `<span class="n-plus-one-indicator">N+1</span>`
+                : '';
+
+        const onclickAttr = hasNPlusOne
+                ? `onclick="event.stopPropagation(); dashboard.showMethodNPlusOne(${this.escapeForAttribute(JSON.stringify(node))})"`
+                : '';
+
+        return `
+      <div class="method-item ${hasNPlusOne ? 'has-n-plus-one' : ''}" ${onclickAttr}>
+        ${indent}
+        <span class="method-layer layer-${layer}">${node.layer}</span>
+        <span class="method-name">${node.className}.${node.methodName}()</span>
+        <span class="method-time ${timeClass}">${time}ms</span>
+        ${queryBadge}
+        ${nPlusOneBadge}
+      </div>
+      ${node.children.map(child => renderNode(child, level + 1)).join('')}
+    `;
+      };
+
+      return `
+    <div class="method-tree">
+      <div class="tree-title">메서드 호출 트리 (Self Time)</div>
+      ${roots.map(root => renderNode(root)).join('')}
     </div>
   `;
-  }
+    },
 
-  function toggleDetails(traceId) {
-    const details = document.getElementById('details-' + traceId);
-    if (details.style.display === 'none' || details.style.display === '') {
-      details.style.display = 'block';
-    } else {
-      details.style.display = 'none';
+    buildMetricTree(metrics) {
+      const nodeMap = new Map();
+      const roots = [];
+
+      // 노드 생성
+      metrics.forEach(m => {
+        nodeMap.set(m.executionId, { ...m, children: [] });
+      });
+
+      // 부모-자식 연결
+      metrics.forEach(m => {
+        if (m.calledBy && nodeMap.has(m.calledBy)) {
+          nodeMap.get(m.calledBy).children.push(nodeMap.get(m.executionId));
+        } else {
+          roots.push(nodeMap.get(m.executionId));
+        }
+      });
+
+      return roots;
+    },
+
+
+    toggleDetails(traceId) {
+      const details = document.getElementById('details-' + traceId);
+      if (details) {
+        details.classList.toggle('active');
+      }
+    },
+
+    // ✅ 메서드별 N+1 상세 표시
+    showMethodNPlusOne(metric) {
+      const modal = document.getElementById('n-plus-one-modal');
+      const title = document.getElementById('modal-title');
+      const body = document.getElementById('modal-body');
+
+      title.textContent = `${metric.className}.${metric.methodName}()`;
+
+      const issues = metric.nplusOneIssues || [];
+      const totalQueryCount = metric.totalQueryCount || 0;
+
+      if (issues.length === 0) {
+        body.innerHTML = '<p>N+1 상세 정보가 없습니다</p>';
+      } else {
+        body.innerHTML = issues.map((issue, idx) => {
+          const percentage = totalQueryCount > 0
+                  ? ((issue.count / totalQueryCount) * 100).toFixed(1)
+                  : '0.0';
+
+          return `
+                        <div class="pattern-detail">
+                            <div class="pattern-header">패턴 #${idx + 1}</div>
+                            <div class="pattern-code">${this.escapeHtml(issue.pattern)}</div>
+
+                            <div class="pattern-stats">
+                                <div class="pattern-stat">
+                                    <div class="pattern-stat-label">반복 횟수</div>
+                                    <div class="pattern-stat-value">${issue.count}회</div>
+                                </div>
+                                <div class="pattern-stat">
+                                    <div class="pattern-stat-label">전체 쿼리</div>
+                                    <div class="pattern-stat-value">${totalQueryCount}개</div>
+                                </div>
+                                <div class="pattern-stat">
+                                    <div class="pattern-stat-label">비율</div>
+                                    <div class="pattern-stat-value">${percentage}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+        }).join('');
+      }
+
+      modal.classList.add('active');
+    },
+
+    closeModal() {
+      const modal = document.getElementById('n-plus-one-modal');
+      modal.classList.remove('active');
+    },
+
+    getTimeClass(time) {
+      if (time < 50) return 'fast';
+      if (time < 200) return 'normal';
+      return 'slow';
+    },
+
+    escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    },
+
+    escapeForAttribute(text) {
+      return text
+              .replace(/&/g, '&amp;')
+              .replace(/'/g, '&apos;')
+              .replace(/"/g, '&quot;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;');
+    },
+
+    showError(message) {
+      alert(message);
     }
-  }
+  };
 
-  function getTimeClass(time) {
-    if (time < 50) return 'fast';
-    if (time < 200) return 'normal';
-    return 'slow';
-  }
+  document.addEventListener('DOMContentLoaded', () => {
+    dashboard.init();
+  });
 </script>
 </body>
 </html>

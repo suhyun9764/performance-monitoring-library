@@ -1,17 +1,19 @@
 package com.suhyun.performancestarter.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
 @Builder
-@ToString
 @AllArgsConstructor
-public class PerformanceMetric {
-    private String traceId;
+@NoArgsConstructor
+@Getter
+public class MetricsDto {
     private int depth;
     private String layer;
     private String className;
@@ -20,11 +22,9 @@ public class PerformanceMetric {
     private String url;
     private long executionTime;
     private LocalDateTime timestamp;
-    private final int totalQueryCount;
-    @Setter
-    private long selfExecutionTime;
+    private int totalQueryCount;
     private String calledBy;
-    private final boolean hasNPlusOne;
+    private boolean hasNPlusOne;
     @Builder.Default
     private final List<NPlusOneIssue> nPlusOneIssues = new ArrayList<>();
 }

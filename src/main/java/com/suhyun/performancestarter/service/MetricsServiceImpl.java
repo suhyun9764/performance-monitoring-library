@@ -1,13 +1,12 @@
 package com.suhyun.performancestarter.service;
 
-import com.suhyun.performancestarter.collector.MetricsRepository;
 import com.suhyun.performancestarter.aop.dto.MethodInfo;
-import com.suhyun.performancestarter.aop.dto.TraceInfo;
-import com.suhyun.performancestarter.dto.NPlusOneIssue;
 import com.suhyun.performancestarter.aop.dto.QueryInfo;
+import com.suhyun.performancestarter.aop.dto.TraceInfo;
+import com.suhyun.performancestarter.collector.MetricsCollector;
+import com.suhyun.performancestarter.dto.NPlusOneIssue;
 import com.suhyun.performancestarter.dto.PerformanceMetric;
 import com.suhyun.performancestarter.model.RequestPerMetrics;
-import com.suhyun.performancestarter.service.async.AsyncExecutor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,40 +17,36 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class MetricsServiceImpl implements MetricsService {
-    private final MetricsRepository metricsRepository;
-    private final AsyncExecutor asyncExecutor;
+    private final MetricsCollector metricsCollector;
 
-    public void saveAsync(PerformanceMetric metric){
-        asyncExecutor.executeAsync(() -> {
-            save(metric);
-        });
-    }
-
-    private void save(PerformanceMetric metric) {
-        metricsRepository.save(metric);
+    @Override
+    public void save(TraceInfo traceInfo, MethodInfo methodInfo, long executionTime, QueryInfo queryInfo) {
+            metricsCollector.save(buildMetric(traceInfo, methodInfo, executionTime, queryInfo));
     }
 
     @Override
     public List<RequestPerMetrics> getAll() {
-        return metricsRepository.getAll();
+        return metricsCollector.getAll();
     }
 
     @Override
     public Map<String, String> clear() {
-        metricsRepository.clear();
+        metricsCollector.clear();
         return Map.of("status", "cleared");
     }
 
     @Override
     public PerformanceMetric createMetric(TraceInfo traceInfo, MethodInfo methodInfo, long executionTime, QueryInfo queryInfo) {
-        return buildMetric(traceInfo,methodInfo,executionTime,queryInfo);
+        return buildMetric(traceInfo, methodInfo, executionTime, queryInfo);
     }
 
 
     private PerformanceMetric buildMetric(TraceInfo traceInfo, MethodInfo methodInfo,
                                           long executionTime, QueryInfo queryInfo) {
         return PerformanceMetric.builder()
+                .executionId(traceInfo.getExecutionId())
                 .traceId(traceInfo.getTraceId())
+                .calledBy(traceInfo.getCalledBy())
                 .depth(traceInfo.getDepth())
                 .layer(methodInfo.getLayer())
                 .className(methodInfo.getClassName())
@@ -76,6 +71,6 @@ public class MetricsServiceImpl implements MetricsService {
     private boolean hasNPlusOne(QueryInfo queryInfo) {
         return queryInfo != null && queryInfo.isHasNPlusOne();
     }
-    
+
 
 }

@@ -1,5 +1,6 @@
-package com.suhyun.performancestarter.aop.dto;
+package com.suhyun.performancestarter.collector;
 
+import com.suhyun.performancestarter.dto.MetricsDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,10 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
-public class TraceInfo {
+public class MetricsInfo {
     private String traceId;
-    private int depth;
-    private String executionId;
-    private boolean isRootCall;
-    private String calledBy;
+    private String requestUrl;
+    private MetricsDto root;
 }

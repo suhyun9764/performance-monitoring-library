@@ -7,7 +7,6 @@ import com.suhyun.performancestarter.aop.dto.MethodInfo;
 import com.suhyun.performancestarter.aop.dto.TraceInfo;
 import com.suhyun.performancestarter.dto.NPlusOneIssue;
 import com.suhyun.performancestarter.aop.dto.QueryInfo;
-import com.suhyun.performancestarter.dto.PerformanceMetric;
 import com.suhyun.performancestarter.model.QueryStatistics;
 import com.suhyun.performancestarter.service.MetricsService;
 import lombok.RequiredArgsConstructor;
@@ -61,11 +60,9 @@ public class PerformanceAspect {
             }
             queryManager.deactivateMonitoring();
         }
-        PerformanceMetric metric = metricsService.createMetric(
-                traceInfo, methodInfo, executionTime, queryInfo
-        );
-        metricsService.saveAsync(metric);
-        traceManager.end(traceInfo);
+
+        metricsService.save(traceInfo, methodInfo, executionTime, queryInfo);
+        traceManager.end();
         if(traceInfo.isRootCall())
             queryManager.end();
         return result;
