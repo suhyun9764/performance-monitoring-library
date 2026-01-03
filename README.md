@@ -4,7 +4,6 @@
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0+-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## 📋 목차
 
