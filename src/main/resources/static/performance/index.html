@@ -847,7 +847,7 @@
       const title = document.getElementById('modal-title');
       const body = document.getElementById('modal-body');
 
-      title.textContent = `${metric.className}.${metric.methodName}()`;
+      title.textContent = `${metric.className}.${metric.methodName}() - N+1`;
 
       const issues = metric.nplusOneIssues || [];
       const totalQueryCount = metric.totalQueryCount || 0;
