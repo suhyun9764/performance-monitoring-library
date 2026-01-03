@@ -43,7 +43,7 @@
 
 #### Step 1: 저장소 클론
 ```bash
-git clone https://github.com/suhyun9764/performance-starter.git
+git clone https://github.com/suhyun9764/performance-monitoring-library.git
 cd performance-starter
 ```
 
